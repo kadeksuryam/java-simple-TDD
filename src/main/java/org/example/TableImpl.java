@@ -1,20 +1,33 @@
 package org.example;
 
-import java.util.HashMap;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class TableImpl implements Table{
-    private final HashMap<Integer, Record> table;
+    private final Connection conn;
 
     public TableImpl() {
-        table = new HashMap<>();
+        try {
+            conn = DriverManager.getConnection("jdbc:sqlite::memory:");
+            try (PreparedStatement stmt = conn.prepareStatement("CREATE TABLE records (id INTEGER PRIMARY KEY, name TEXT)")) {
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to initialize SQLiteTable", e);
+        }
     }
 
     @Override
     public boolean insertRecord(Record record) {
-        if (table.containsKey(record.getId())) {
+        try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO records (id, name) VALUES (?, ?)")) {
+            stmt.setInt(1, record.getId());
+            stmt.setString(2, record.getName());
+            stmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
             return false;
         }
-        table.put(record.getId(), record);
-        return true;
     }
 }
